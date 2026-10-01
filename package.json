@@ -1,0 +1,42 @@
+{
+  "name": "customer-service",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "migrate": "node --env-file=.env -r ts-node/register/transpile-only src/scripts/migrate.ts",
+    "migrate:test": "node --env-file=.env.test -r ts-node/register/transpile-only src/scripts/migrate.ts",
+    "test:unit": "jest src/__tests__/unit",
+    "test:integration": "node --env-file=.env.test -r ts-node/register/transpile-only src/scripts/migrate.ts && node --env-file=.env.test ./node_modules/jest/bin/jest.js src/__tests__/integration --runInBand",
+    "test:coverage": "jest --coverage --runInBand"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.4",
+    "express": "^5.2.1",
+    "helmet": "^8.3.0",
+    "mysql2": "^3.24.4",
+    "uuid": "^14.0.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.6.3",
+    "@types/supertest": "^7.2.1",
+    "@types/uuid": "^10.0.0",
+    "jest": "^30.5.2",
+    "supertest": "^7.3.0",
+    "ts-jest": "^29.4.14",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
+  }
+}
