@@ -5,9 +5,16 @@ export type CustomerStatus =
 
 export interface Customer {
     id: string;
+
+    identityUserId: string;
+
     firstName: string;
+
     lastName: string | null;
+
     status: CustomerStatus;
+
     createdAt: Date;
+
     updatedAt: Date;
 }

@@ -39,6 +39,80 @@ services:
 
     restart: unless-stopped
 
+  # =========================
+  # Customer Service
+  # =========================
+  customer-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: quantumcart-customer-service
+
+    environment:
+      NODE_ENV: development
+
+      PORT: 8007
+
+      DB_HOST: customer-mysql
+      DB_PORT: 3306
+
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+
+      DB_CONNECTION_LIMIT: ${DB_CONNECTION_LIMIT}
+
+      DB_ROOT_USER: ${DB_ROOT_USER}
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+
+    ports:
+      - "8007:8007"
+
+    depends_on:
+      customer-mysql:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    # =========================
+  # Customer Database Migration
+  # =========================
+  
+    # =========================
+  # Customer Database Migration
+  # =========================
+  customer-migration:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: quantumcart-customer-migration
+
+    environment:
+      NODE_ENV: development
+
+      DB_HOST: customer-mysql
+      DB_PORT: 3306
+
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+
+      DB_CONNECTION_LIMIT: ${DB_CONNECTION_LIMIT}
+
+      DB_ROOT_USER: ${DB_ROOT_USER}
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+
+    depends_on:
+      customer-mysql:
+        condition: service_healthy
+
+    command:
+      [
+        "node",
+        "dist/scripts/migrate.js"
+      ]
 
 volumes:
   customer_mysql_data:
