@@ -6,12 +6,10 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
-    "migrate": "node --env-file=.env -r ts-node/register/transpile-only src/scripts/migrate.ts",
-    "migrate:test": "node --env-file=.env.test -r ts-node/register/transpile-only src/scripts/migrate.ts",
-    "test:unit": "jest src/__tests__/unit",
-    "test:integration": "node --env-file=.env.test -r ts-node/register/transpile-only src/scripts/migrate.ts && node --env-file=.env.test ./node_modules/jest/bin/jest.js src/__tests__/integration --runInBand",
-    "test:coverage": "jest --coverage --runInBand"
+    "start": "node dist/scripts/start.js",
+    "migrate": "node dist/scripts/migrate.js",
+    "test:unit": "jest src/__tests__/unit --runInBand",
+    "test:integration": "node --env-file=.env.test -r ts-node/register/transpile-only src/scripts/migrate.ts && node --env-file=.env.test ./node_modules/jest/bin/jest.js src/__tests__/integration --runInBand"
   },
   "keywords": [],
   "author": "",

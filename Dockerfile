@@ -18,4 +18,4 @@ RUN mkdir -p dist/migrations \
 
 EXPOSE 8007
 
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/scripts/start.js"]

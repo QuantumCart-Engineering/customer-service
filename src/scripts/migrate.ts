@@ -11,6 +11,47 @@ const migrationsDirectory =
         "../migrations"
     );
 
+const createDatabase = async (): Promise<void> => {
+    const connection =
+        await mysql.createConnection({
+            host: env.db.host,
+            port: env.db.port,
+            user: env.dbRoot.user,
+            password:
+                env.dbRoot.password
+        });
+
+    try {
+        const databaseName =
+            mysql.escapeId(
+                env.db.name
+            );
+
+        const applicationUser =
+            mysql.escapeId(
+                env.db.user
+            );
+
+        await connection.execute(
+            `CREATE DATABASE IF NOT EXISTS ${databaseName}`
+        );
+
+        await connection.query(
+            `GRANT ALL PRIVILEGES ON ${databaseName}.* TO ${applicationUser}@'%'`
+        );
+
+        await connection.query(
+            "FLUSH PRIVILEGES"
+        );
+
+        console.log(
+            `Database "${env.db.name}" is ready.`
+        );
+    } finally {
+        await connection.end();
+    }
+};
+
 const runMigrations = async (): Promise<void> => {
     const connection =
         await mysql.createConnection({
@@ -119,11 +160,27 @@ const runMigrations = async (): Promise<void> => {
     }
 };
 
-runMigrations().catch(error => {
-    console.error(
-        "Migration failed:",
-        error
-    );
+const migrate = async (): Promise<void> => {
+    try {
+        console.log(
+            "Starting database migration..."
+        );
 
-    process.exit(1);
-});
+        await createDatabase();
+
+        await runMigrations();
+
+        console.log(
+            "Database migration completed successfully."
+        );
+    } catch (error) {
+        console.error(
+            "Migration failed:",
+            error
+        );
+
+        process.exit(1);
+    }
+};
+
+migrate();
