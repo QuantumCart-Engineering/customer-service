@@ -51,9 +51,18 @@ jobs:
         uses: actions/checkout@v4
 
       # =========================
-      # Diagnose GitHub Secrets
+      # Setup Node.js
       # =========================
-      - name: Verify test credentials are configured
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # =========================
+      # Verify GitHub Secrets
+      # =========================
+      - name: Verify test credentials
         env:
           DB_TEST_ROOT_PASSWORD: ${{ secrets.DB_TEST_ROOT_PASSWORD }}
           DB_TEST_USER: ${{ secrets.DB_TEST_USER }}
@@ -63,26 +72,21 @@ jobs:
 
           for name in DB_TEST_ROOT_PASSWORD DB_TEST_USER DB_TEST_PASSWORD; do
             if [ -z "${!name}" ]; then
-              echo "::error::$name is missing or empty in GitHub Actions secrets."
+              echo "::error::$name is missing or empty."
               missing=1
-            else
-              echo "$name is configured."
             fi
           done
 
           if [ "$missing" -ne 0 ]; then
-            echo "Configure the missing repository secrets and rerun CI."
             exit 1
           fi
 
-      # =========================
-      # Setup Node.js
-      # =========================
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
+          if [ "$DB_TEST_USER" = "root" ]; then
+            echo "::error::DB_TEST_USER must be a regular MySQL user, not root."
+            exit 1
+          fi
+
+          echo "Test credentials are configured."
 
       # =========================
       # Install dependencies
@@ -113,7 +117,7 @@ jobs:
           } > .env.test
 
       # =========================
-      # Wait for MySQL
+      # Wait for Customer MySQL
       # =========================
       - name: Wait for Customer MySQL
         env:
@@ -184,16 +188,14 @@ jobs:
       # =========================
       - name: Show Customer MySQL diagnostics
         if: failure()
-        env:
-          DB_TEST_ROOT_PASSWORD: ${{ secrets.DB_TEST_ROOT_PASSWORD }}
         run: |
           echo "===== Docker containers ====="
           docker ps -a
 
-          echo "===== Customer MySQL container logs ====="
           CONTAINER_ID=$(docker ps -aq --filter "name=customer-mysql" | head -n 1)
 
           if [ -n "$CONTAINER_ID" ]; then
+            echo "===== MySQL container logs ====="
             docker logs "$CONTAINER_ID" 2>&1 || true
 
             echo "===== MySQL health status ====="
