@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./docs/swagger";
 
 import routes from "./routes";
 import { errorMiddleware } from "./middlewares/error.middleware";
@@ -28,6 +30,12 @@ app.get(
             status: "UP"
         });
     }
+);
+
+app.use(
+    "/api-docs",
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec)
 );
 
 app.use(
