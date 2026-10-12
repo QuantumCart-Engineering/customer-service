@@ -36,11 +36,11 @@ jobs:
           - 3312:3306
 
         options: >-
-          --health-cmd="mysqladmin ping -h localhost -uroot -p$MYSQL_ROOT_PASSWORD"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
-          --health-start-period=10s
+            --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD"
+            --health-interval=5s
+            --health-timeout=5s
+            --health-retries=30
+            --health-start-period=60s
 
     steps:
 
