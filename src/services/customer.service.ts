@@ -14,6 +14,8 @@ import {
     CustomerRepository
 } from "../repositories/customer.repository";
 
+import { AppError } from "../errors/app.error";
+
 export class CustomerService {
 
     constructor(
@@ -29,8 +31,9 @@ export class CustomerService {
             dto.identityUserId?.trim();
 
         if (!identityUserId) {
-            throw new Error(
-                "Identity user ID is required"
+            throw new AppError(
+                "Identity user ID is required",
+                400
             );
         }
 
@@ -41,8 +44,9 @@ export class CustomerService {
                 );
 
         if (existingCustomer) {
-            throw new Error(
-                "Customer profile already exists for this identity user"
+            throw new AppError(
+                "Customer profile already exists for this identity user",
+                409
             );
         }
 
@@ -50,8 +54,9 @@ export class CustomerService {
             dto.firstName?.trim();
 
         if (!firstName) {
-            throw new Error(
-                "First name is required"
+            throw new AppError(
+                "First name is required",
+                400
             );
         }
 
@@ -87,8 +92,9 @@ export class CustomerService {
             );
 
         if (!customer) {
-            throw new Error(
-                "Customer not found"
+            throw new AppError(
+                "Customer not found",
+                404
             );
         }
 
@@ -103,8 +109,9 @@ export class CustomerService {
             identityUserId?.trim();
 
         if (!normalizedIdentityUserId) {
-            throw new Error(
-                "Identity user ID is required"
+            throw new AppError(
+                "Identity user ID is required",
+                400
             );
         }
 
@@ -115,8 +122,9 @@ export class CustomerService {
                 );
 
         if (!customer) {
-            throw new Error(
-                "Customer profile not found"
+            throw new AppError(
+                "Customer profile not found",
+                404
             );
         }
 
@@ -134,8 +142,9 @@ export class CustomerService {
         if (
             customer.status === "DELETED"
         ) {
-            throw new Error(
-                "Deleted customer cannot be updated"
+            throw new AppError(
+                "Deleted customer cannot be updated",
+                409
             );
         }
 
@@ -145,8 +154,9 @@ export class CustomerService {
                 : customer.firstName;
 
         if (!firstName) {
-            throw new Error(
-                "First name is required"
+            throw new AppError(
+                "First name is required",
+                400
             );
         }
 
@@ -163,8 +173,9 @@ export class CustomerService {
             );
 
         if (!updated) {
-            throw new Error(
-                "Customer could not be updated"
+            throw new AppError(
+                "Customer could not be updated",
+                500
             );
         }
 
@@ -174,8 +185,9 @@ export class CustomerService {
             );
 
         if (!updatedCustomer) {
-            throw new Error(
-                "Customer not found after update"
+            throw new AppError(
+                "Customer not found after update",
+                500
             );
         }
 
@@ -193,16 +205,18 @@ export class CustomerService {
         if (
             customer.status === "DELETED"
         ) {
-            throw new Error(
-                "Deleted customer status cannot be changed"
+            throw new AppError(
+                "Deleted customer status cannot be changed",
+                409
             );
         }
 
         if (
             status === "DELETED"
         ) {
-            throw new Error(
-                "Use deleteCustomer to delete a customer"
+            throw new AppError(
+                "Use deleteCustomer to delete a customer",
+                400
             );
         }
 
@@ -219,8 +233,9 @@ export class CustomerService {
             );
 
         if (!updated) {
-            throw new Error(
-                "Customer status could not be updated"
+            throw new AppError(
+                "Customer status could not be updated",
+                500
             );
         }
 
@@ -230,8 +245,9 @@ export class CustomerService {
             );
 
         if (!updatedCustomer) {
-            throw new Error(
-                "Customer not found after status update"
+            throw new AppError(
+                "Customer not found after status update",
+                500
             );
         }
 
@@ -257,8 +273,9 @@ export class CustomerService {
             );
 
         if (!deleted) {
-            throw new Error(
-                "Customer could not be deleted"
+            throw new AppError(
+                "Customer could not be deleted",
+                500
             );
         }
     }

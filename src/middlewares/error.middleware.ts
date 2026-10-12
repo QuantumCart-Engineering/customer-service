@@ -4,6 +4,8 @@ import {
     Response
 } from "express";
 
+import { AppError } from "../errors/app.error";
+
 export const errorMiddleware = (
     error: unknown,
     _req: Request,
@@ -13,11 +15,22 @@ export const errorMiddleware = (
 
     console.error(error);
 
-    if (error instanceof Error) {
-        res.status(400).json({
+    if (error instanceof AppError) {
+        res.status(error.statusCode).json({
             success: false,
             error: {
                 message: error.message
+            }
+        });
+
+        return;
+    }
+
+    if (error instanceof Error) {
+        res.status(500).json({
+            success: false,
+            error: {
+                message: "Internal server error"
             }
         });
 

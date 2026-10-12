@@ -1,7 +1,9 @@
 import request from "supertest";
+
 import { randomUUID } from "crypto";
 
 import app from "../../app";
+
 import { pool } from "../../config/database";
 
 describe("Customer API - Integration Tests", () => {
@@ -11,7 +13,9 @@ describe("Customer API - Integration Tests", () => {
     let customerId: string;
 
     afterAll(async () => {
+
         if (customerId) {
+
             await pool.execute(
                 `
                 DELETE FROM addresses
@@ -94,6 +98,7 @@ describe("Customer API - Integration Tests", () => {
                 /*
                  * Verify persistence in database.
                  */
+
                 const [rows] =
                     await pool.execute(
                         `
@@ -146,10 +151,15 @@ describe("Customer API - Integration Tests", () => {
                         });
 
                 expect(response.status)
-                    .toBe(400);
+                    .toBe(409);
 
                 expect(response.body.success)
                     .toBe(false);
+
+                expect(response.body.error.message)
+                    .toBe(
+                        "Customer profile already exists for this identity user"
+                    );
             }
         );
     });
@@ -194,10 +204,13 @@ describe("Customer API - Integration Tests", () => {
                         );
 
                 expect(response.status)
-                    .toBe(400);
+                    .toBe(404);
 
                 expect(response.body.success)
                     .toBe(false);
+
+                expect(response.body.error.message)
+                    .toBe("Customer not found");
             }
         );
     });
@@ -247,10 +260,15 @@ describe("Customer API - Integration Tests", () => {
                             );
 
                     expect(response.status)
-                        .toBe(400);
+                        .toBe(404);
 
                     expect(response.body.success)
                         .toBe(false);
+
+                    expect(response.body.error.message)
+                        .toBe(
+                            "Customer profile not found"
+                        );
                 }
             );
         }
@@ -359,6 +377,7 @@ describe("Customer API - Integration Tests", () => {
                 /*
                  * Verify soft deletion.
                  */
+
                 const [rows] =
                     await pool.execute(
                         `
@@ -394,9 +413,7 @@ describe("Customer API - Integration Tests", () => {
 
                 /*
                  * Current repository returns the customer
-                 * even when status is DELETED, so this
-                 * expectation documents the current API
-                 * behavior only if the service allows it.
+                 * even when status is DELETED.
                  */
                 expect(response.status)
                     .toBe(200);
@@ -406,4 +423,5 @@ describe("Customer API - Integration Tests", () => {
             }
         );
     });
+
 });

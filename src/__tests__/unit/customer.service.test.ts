@@ -10,6 +10,10 @@ import {
     Customer
 } from "../../entities/customer.entity";
 
+import {
+    AppError
+} from "../../errors/app.error";
+
 describe(
     "CustomerService",
     () => {
@@ -19,6 +23,25 @@ describe(
 
         let customerService:
             CustomerService;
+
+        const expectAppError = (
+            error: unknown,
+            statusCode: number,
+            message: string
+        ): void => {
+
+            expect(error).toBeInstanceOf(
+                AppError
+            );
+
+            expect(
+                (error as AppError).statusCode
+            ).toBe(statusCode);
+
+            expect(
+                (error as Error).message
+            ).toBe(message);
+        };
 
         beforeEach(() => {
 
@@ -41,6 +64,7 @@ describe(
 
                     delete:
                         jest.fn()
+
                 } as unknown as
                     jest.Mocked<CustomerRepository>;
 
@@ -144,18 +168,29 @@ describe(
                     "should reject when identity user ID is missing",
                     async () => {
 
-                        await expect(
-                            customerService
+                        try {
+
+                            await customerService
                                 .createCustomer({
                                     identityUserId:
                                         "",
 
                                     firstName:
                                         "Akash"
-                                })
-                        ).rejects.toThrow(
-                            "Identity user ID is required"
-                        );
+                                });
+
+                            fail(
+                                "Expected AppError"
+                            );
+
+                        } catch (error) {
+
+                            expectAppError(
+                                error,
+                                400,
+                                "Identity user ID is required"
+                            );
+                        }
 
                         expect(
                             customerRepository
@@ -175,27 +210,28 @@ describe(
 
                         const existingCustomer:
                             Customer = {
-                                id:
-                                    "customer-existing",
 
-                                identityUserId:
-                                    "identity-123",
+                            id:
+                                "customer-existing",
 
-                                firstName:
-                                    "Existing",
+                            identityUserId:
+                                "identity-123",
 
-                                lastName:
-                                    "User",
+                            firstName:
+                                "Existing",
 
-                                status:
-                                    "ACTIVE",
+                            lastName:
+                                "User",
 
-                                createdAt:
-                                    new Date(),
+                            status:
+                                "ACTIVE",
 
-                                updatedAt:
-                                    new Date()
-                            };
+                            createdAt:
+                                new Date(),
+
+                            updatedAt:
+                                new Date()
+                        };
 
                         customerRepository
                             .findByIdentityUserId
@@ -203,18 +239,29 @@ describe(
                                 existingCustomer
                             );
 
-                        await expect(
-                            customerService
+                        try {
+
+                            await customerService
                                 .createCustomer({
                                     identityUserId:
                                         "identity-123",
 
                                     firstName:
                                         "Akash"
-                                })
-                        ).rejects.toThrow(
-                            "Customer profile already exists for this identity user"
-                        );
+                                });
+
+                            fail(
+                                "Expected AppError"
+                            );
+
+                        } catch (error) {
+
+                            expectAppError(
+                                error,
+                                409,
+                                "Customer profile already exists for this identity user"
+                            );
+                        }
 
                         expect(
                             customerRepository
@@ -233,18 +280,29 @@ describe(
                                 null
                             );
 
-                        await expect(
-                            customerService
+                        try {
+
+                            await customerService
                                 .createCustomer({
                                     identityUserId:
                                         "identity-123",
 
                                     firstName:
                                         "   "
-                                })
-                        ).rejects.toThrow(
-                            "First name is required"
-                        );
+                                });
+
+                            fail(
+                                "Expected AppError"
+                            );
+
+                        } catch (error) {
+
+                            expectAppError(
+                                error,
+                                400,
+                                "First name is required"
+                            );
+                        }
 
                         expect(
                             customerRepository
@@ -252,6 +310,7 @@ describe(
                         ).not.toHaveBeenCalled();
                     }
                 );
+
             }
         );
 
@@ -265,27 +324,28 @@ describe(
 
                         const customer:
                             Customer = {
-                                id:
-                                    "customer-123",
 
-                                identityUserId:
-                                    "identity-123",
+                            id:
+                                "customer-123",
 
-                                firstName:
-                                    "Akash",
+                            identityUserId:
+                                "identity-123",
 
-                                lastName:
-                                    "Kumar",
+                            firstName:
+                                "Akash",
 
-                                status:
-                                    "ACTIVE",
+                            lastName:
+                                "Kumar",
 
-                                createdAt:
-                                    new Date(),
+                            status:
+                                "ACTIVE",
 
-                                updatedAt:
-                                    new Date()
-                            };
+                            createdAt:
+                                new Date(),
+
+                            updatedAt:
+                                new Date()
+                        };
 
                         customerRepository
                             .findById
@@ -317,16 +377,28 @@ describe(
                                 null
                             );
 
-                        await expect(
-                            customerService
+                        try {
+
+                            await customerService
                                 .getCustomerById(
                                     "customer-123"
-                                )
-                        ).rejects.toThrow(
-                            "Customer not found"
-                        );
+                                );
+
+                            fail(
+                                "Expected AppError"
+                            );
+
+                        } catch (error) {
+
+                            expectAppError(
+                                error,
+                                404,
+                                "Customer not found"
+                            );
+                        }
                     }
                 );
+
             }
         );
 
@@ -340,27 +412,28 @@ describe(
 
                         const customer:
                             Customer = {
-                                id:
-                                    "customer-123",
 
-                                identityUserId:
-                                    "identity-123",
+                            id:
+                                "customer-123",
 
-                                firstName:
-                                    "Akash",
+                            identityUserId:
+                                "identity-123",
 
-                                lastName:
-                                    "Kumar",
+                            firstName:
+                                "Akash",
 
-                                status:
-                                    "ACTIVE",
+                            lastName:
+                                "Kumar",
 
-                                createdAt:
-                                    new Date(),
+                            status:
+                                "ACTIVE",
 
-                                updatedAt:
-                                    new Date()
-                            };
+                            createdAt:
+                                new Date(),
+
+                            updatedAt:
+                                new Date()
+                        };
 
                         customerRepository
                             .findByIdentityUserId
@@ -386,14 +459,25 @@ describe(
                     "should reject missing identity user ID",
                     async () => {
 
-                        await expect(
-                            customerService
+                        try {
+
+                            await customerService
                                 .getCustomerByIdentityUserId(
                                     "   "
-                                )
-                        ).rejects.toThrow(
-                            "Identity user ID is required"
-                        );
+                                );
+
+                            fail(
+                                "Expected AppError"
+                            );
+
+                        } catch (error) {
+
+                            expectAppError(
+                                error,
+                                400,
+                                "Identity user ID is required"
+                            );
+                        }
                     }
                 );
 
@@ -407,16 +491,28 @@ describe(
                                 null
                             );
 
-                        await expect(
-                            customerService
+                        try {
+
+                            await customerService
                                 .getCustomerByIdentityUserId(
                                     "identity-123"
-                                )
-                        ).rejects.toThrow(
-                            "Customer profile not found"
-                        );
+                                );
+
+                            fail(
+                                "Expected AppError"
+                            );
+
+                        } catch (error) {
+
+                            expectAppError(
+                                error,
+                                404,
+                                "Customer profile not found"
+                            );
+                        }
                     }
                 );
+
             }
         );
 
@@ -430,38 +526,40 @@ describe(
 
                         const existingCustomer:
                             Customer = {
-                                id:
-                                    "customer-123",
 
-                                identityUserId:
-                                    "identity-123",
+                            id:
+                                "customer-123",
 
-                                firstName:
-                                    "Old",
+                            identityUserId:
+                                "identity-123",
 
-                                lastName:
-                                    "Name",
+                            firstName:
+                                "Old",
 
-                                status:
-                                    "ACTIVE",
+                            lastName:
+                                "Name",
 
-                                createdAt:
-                                    new Date(),
+                            status:
+                                "ACTIVE",
 
-                                updatedAt:
-                                    new Date()
-                            };
+                            createdAt:
+                                new Date(),
+
+                            updatedAt:
+                                new Date()
+                        };
 
                         const updatedCustomer:
                             Customer = {
-                                ...existingCustomer,
 
-                                firstName:
-                                    "New",
+                            ...existingCustomer,
 
-                                lastName:
-                                    "Name"
-                            };
+                            firstName:
+                                "New",
+
+                            lastName:
+                                "Name"
+                        };
 
                         customerRepository
                             .findById
@@ -511,27 +609,28 @@ describe(
 
                         const customer:
                             Customer = {
-                                id:
-                                    "customer-123",
 
-                                identityUserId:
-                                    "identity-123",
+                            id:
+                                "customer-123",
 
-                                firstName:
-                                    "Akash",
+                            identityUserId:
+                                "identity-123",
 
-                                lastName:
-                                    "Kumar",
+                            firstName:
+                                "Akash",
 
-                                status:
-                                    "DELETED",
+                            lastName:
+                                "Kumar",
 
-                                createdAt:
-                                    new Date(),
+                            status:
+                                "DELETED",
 
-                                updatedAt:
-                                    new Date()
-                            };
+                            createdAt:
+                                new Date(),
+
+                            updatedAt:
+                                new Date()
+                        };
 
                         customerRepository
                             .findById
@@ -539,18 +638,29 @@ describe(
                                 customer
                             );
 
-                        await expect(
-                            customerService
+                        try {
+
+                            await customerService
                                 .updateCustomer(
                                     "customer-123",
                                     {
                                         firstName:
                                             "New"
                                     }
-                                )
-                        ).rejects.toThrow(
-                            "Deleted customer cannot be updated"
-                        );
+                                );
+
+                            fail(
+                                "Expected AppError"
+                            );
+
+                        } catch (error) {
+
+                            expectAppError(
+                                error,
+                                409,
+                                "Deleted customer cannot be updated"
+                            );
+                        }
 
                         expect(
                             customerRepository
@@ -558,6 +668,7 @@ describe(
                         ).not.toHaveBeenCalled();
                     }
                 );
+
             }
         );
 
@@ -571,35 +682,37 @@ describe(
 
                         const customer:
                             Customer = {
-                                id:
-                                    "customer-123",
 
-                                identityUserId:
-                                    "identity-123",
+                            id:
+                                "customer-123",
 
-                                firstName:
-                                    "Akash",
+                            identityUserId:
+                                "identity-123",
 
-                                lastName:
-                                    "Kumar",
+                            firstName:
+                                "Akash",
 
-                                status:
-                                    "ACTIVE",
+                            lastName:
+                                "Kumar",
 
-                                createdAt:
-                                    new Date(),
+                            status:
+                                "ACTIVE",
 
-                                updatedAt:
-                                    new Date()
-                            };
+                            createdAt:
+                                new Date(),
+
+                            updatedAt:
+                                new Date()
+                        };
 
                         const blockedCustomer:
                             Customer = {
-                                ...customer,
 
-                                status:
-                                    "BLOCKED"
-                            };
+                            ...customer,
+
+                            status:
+                                "BLOCKED"
+                        };
 
                         customerRepository
                             .findById
@@ -645,27 +758,28 @@ describe(
 
                         const customer:
                             Customer = {
-                                id:
-                                    "customer-123",
 
-                                identityUserId:
-                                    "identity-123",
+                            id:
+                                "customer-123",
 
-                                firstName:
-                                    "Akash",
+                            identityUserId:
+                                "identity-123",
 
-                                lastName:
-                                    "Kumar",
+                            firstName:
+                                "Akash",
 
-                                status:
-                                    "DELETED",
+                            lastName:
+                                "Kumar",
 
-                                createdAt:
-                                    new Date(),
+                            status:
+                                "DELETED",
 
-                                updatedAt:
-                                    new Date()
-                            };
+                            createdAt:
+                                new Date(),
+
+                            updatedAt:
+                                new Date()
+                        };
 
                         customerRepository
                             .findById
@@ -673,15 +787,26 @@ describe(
                                 customer
                             );
 
-                        await expect(
-                            customerService
+                        try {
+
+                            await customerService
                                 .updateStatus(
                                     "customer-123",
                                     "ACTIVE"
-                                )
-                        ).rejects.toThrow(
-                            "Deleted customer status cannot be changed"
-                        );
+                                );
+
+                            fail(
+                                "Expected AppError"
+                            );
+
+                        } catch (error) {
+
+                            expectAppError(
+                                error,
+                                409,
+                                "Deleted customer status cannot be changed"
+                            );
+                        }
 
                         expect(
                             customerRepository
@@ -696,27 +821,28 @@ describe(
 
                         const customer:
                             Customer = {
-                                id:
-                                    "customer-123",
 
-                                identityUserId:
-                                    "identity-123",
+                            id:
+                                "customer-123",
 
-                                firstName:
-                                    "Akash",
+                            identityUserId:
+                                "identity-123",
 
-                                lastName:
-                                    "Kumar",
+                            firstName:
+                                "Akash",
 
-                                status:
-                                    "ACTIVE",
+                            lastName:
+                                "Kumar",
 
-                                createdAt:
-                                    new Date(),
+                            status:
+                                "ACTIVE",
 
-                                updatedAt:
-                                    new Date()
-                            };
+                            createdAt:
+                                new Date(),
+
+                            updatedAt:
+                                new Date()
+                        };
 
                         customerRepository
                             .findById
@@ -724,15 +850,26 @@ describe(
                                 customer
                             );
 
-                        await expect(
-                            customerService
+                        try {
+
+                            await customerService
                                 .updateStatus(
                                     "customer-123",
                                     "DELETED"
-                                )
-                        ).rejects.toThrow(
-                            "Use deleteCustomer to delete a customer"
-                        );
+                                );
+
+                            fail(
+                                "Expected AppError"
+                            );
+
+                        } catch (error) {
+
+                            expectAppError(
+                                error,
+                                400,
+                                "Use deleteCustomer to delete a customer"
+                            );
+                        }
 
                         expect(
                             customerRepository
@@ -747,27 +884,28 @@ describe(
 
                         const customer:
                             Customer = {
-                                id:
-                                    "customer-123",
 
-                                identityUserId:
-                                    "identity-123",
+                            id:
+                                "customer-123",
 
-                                firstName:
-                                    "Akash",
+                            identityUserId:
+                                "identity-123",
 
-                                lastName:
-                                    "Kumar",
+                            firstName:
+                                "Akash",
 
-                                status:
-                                    "ACTIVE",
+                            lastName:
+                                "Kumar",
 
-                                createdAt:
-                                    new Date(),
+                            status:
+                                "ACTIVE",
 
-                                updatedAt:
-                                    new Date()
-                            };
+                            createdAt:
+                                new Date(),
+
+                            updatedAt:
+                                new Date()
+                        };
 
                         customerRepository
                             .findById
@@ -794,6 +932,7 @@ describe(
                         ).not.toHaveBeenCalled();
                     }
                 );
+
             }
         );
 
@@ -807,27 +946,28 @@ describe(
 
                         const customer:
                             Customer = {
-                                id:
-                                    "customer-123",
 
-                                identityUserId:
-                                    "identity-123",
+                            id:
+                                "customer-123",
 
-                                firstName:
-                                    "Akash",
+                            identityUserId:
+                                "identity-123",
 
-                                lastName:
-                                    "Kumar",
+                            firstName:
+                                "Akash",
 
-                                status:
-                                    "ACTIVE",
+                            lastName:
+                                "Kumar",
 
-                                createdAt:
-                                    new Date(),
+                            status:
+                                "ACTIVE",
 
-                                updatedAt:
-                                    new Date()
-                            };
+                            createdAt:
+                                new Date(),
+
+                            updatedAt:
+                                new Date()
+                        };
 
                         customerRepository
                             .findById
@@ -861,27 +1001,28 @@ describe(
 
                         const customer:
                             Customer = {
-                                id:
-                                    "customer-123",
 
-                                identityUserId:
-                                    "identity-123",
+                            id:
+                                "customer-123",
 
-                                firstName:
-                                    "Akash",
+                            identityUserId:
+                                "identity-123",
 
-                                lastName:
-                                    "Kumar",
+                            firstName:
+                                "Akash",
 
-                                status:
-                                    "DELETED",
+                            lastName:
+                                "Kumar",
 
-                                createdAt:
-                                    new Date(),
+                            status:
+                                "DELETED",
 
-                                updatedAt:
-                                    new Date()
-                            };
+                            createdAt:
+                                new Date(),
+
+                            updatedAt:
+                                new Date()
+                        };
 
                         customerRepository
                             .findById
@@ -900,7 +1041,9 @@ describe(
                         ).not.toHaveBeenCalled();
                     }
                 );
+
             }
         );
+
     }
 );

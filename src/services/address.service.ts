@@ -17,6 +17,8 @@ import {
     CustomerRepository
 } from "../repositories/customer.repository";
 
+import { AppError } from "../errors/app.error";
+
 export class AddressService {
 
     constructor(
@@ -104,24 +106,27 @@ export class AddressService {
             );
 
         if (!address) {
-            throw new Error(
-                "Address not found"
+            throw new AppError(
+                "Address not found",
+                404
             );
         }
 
         if (
             address.customerId !== customerId
         ) {
-            throw new Error(
-                "Address does not belong to customer"
+            throw new AppError(
+                "Address does not belong to customer",
+                404
             );
         }
 
         if (
             address.status === "DELETED"
         ) {
-            throw new Error(
-                "Address not found"
+            throw new AppError(
+                "Address not found",
+                404
             );
         }
 
@@ -154,6 +159,7 @@ export class AddressService {
             );
 
         const address: Address = {
+
             ...existing,
 
             addressType:
@@ -226,8 +232,9 @@ export class AddressService {
             );
 
         if (!updated) {
-            throw new Error(
-                "Address could not be updated"
+            throw new AppError(
+                "Address could not be updated",
+                500
             );
         }
 
@@ -237,8 +244,9 @@ export class AddressService {
             );
 
         if (!updatedAddress) {
-            throw new Error(
-                "Address not found after update"
+            throw new AppError(
+                "Address not found after update",
+                500
             );
         }
 
@@ -262,8 +270,9 @@ export class AddressService {
             );
 
         if (!deleted) {
-            throw new Error(
-                "Address could not be deleted"
+            throw new AppError(
+                "Address could not be deleted",
+                500
             );
         }
     }
@@ -278,16 +287,18 @@ export class AddressService {
             );
 
         if (!customer) {
-            throw new Error(
-                "Customer not found"
+            throw new AppError(
+                "Customer not found",
+                404
             );
         }
 
         if (
             customer.status === "DELETED"
         ) {
-            throw new Error(
-                "Deleted customer cannot have address operations"
+            throw new AppError(
+                "Deleted customer cannot have address operations",
+                409
             );
         }
     }
@@ -299,40 +310,45 @@ export class AddressService {
         if (
             !dto.recipientName?.trim()
         ) {
-            throw new Error(
-                "Recipient name is required"
+            throw new AppError(
+                "Recipient name is required",
+                400
             );
         }
 
         if (
             !dto.addressLine1?.trim()
         ) {
-            throw new Error(
-                "Address line 1 is required"
+            throw new AppError(
+                "Address line 1 is required",
+                400
             );
         }
 
         if (
             !dto.city?.trim()
         ) {
-            throw new Error(
-                "City is required"
+            throw new AppError(
+                "City is required",
+                400
             );
         }
 
         if (
             !dto.state?.trim()
         ) {
-            throw new Error(
-                "State is required"
+            throw new AppError(
+                "State is required",
+                400
             );
         }
 
         if (
             !dto.postalCode?.trim()
         ) {
-            throw new Error(
-                "Postal code is required"
+            throw new AppError(
+                "Postal code is required",
+                400
             );
         }
     }
@@ -344,40 +360,45 @@ export class AddressService {
         if (
             !address.recipientName.trim()
         ) {
-            throw new Error(
-                "Recipient name is required"
+            throw new AppError(
+                "Recipient name is required",
+                400
             );
         }
 
         if (
             !address.addressLine1.trim()
         ) {
-            throw new Error(
-                "Address line 1 is required"
+            throw new AppError(
+                "Address line 1 is required",
+                400
             );
         }
 
         if (
             !address.city.trim()
         ) {
-            throw new Error(
-                "City is required"
+            throw new AppError(
+                "City is required",
+                400
             );
         }
 
         if (
             !address.state.trim()
         ) {
-            throw new Error(
-                "State is required"
+            throw new AppError(
+                "State is required",
+                400
             );
         }
 
         if (
             !address.postalCode.trim()
         ) {
-            throw new Error(
-                "Postal code is required"
+            throw new AppError(
+                "Postal code is required",
+                400
             );
         }
     }
