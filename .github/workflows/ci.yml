@@ -36,11 +36,11 @@ jobs:
           - 3312:3306
 
         options: >-
-            --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD"
-            --health-interval=5s
-            --health-timeout=5s
-            --health-retries=30
-            --health-start-period=60s
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+          --health-start-period=60s
 
     steps:
 
@@ -49,6 +49,31 @@ jobs:
       # =========================
       - name: Checkout Customer Service
         uses: actions/checkout@v4
+
+      # =========================
+      # Diagnose GitHub Secrets
+      # =========================
+      - name: Verify test credentials are configured
+        env:
+          DB_TEST_ROOT_PASSWORD: ${{ secrets.DB_TEST_ROOT_PASSWORD }}
+          DB_TEST_USER: ${{ secrets.DB_TEST_USER }}
+          DB_TEST_PASSWORD: ${{ secrets.DB_TEST_PASSWORD }}
+        run: |
+          missing=0
+
+          for name in DB_TEST_ROOT_PASSWORD DB_TEST_USER DB_TEST_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is missing or empty in GitHub Actions secrets."
+              missing=1
+            else
+              echo "$name is configured."
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            echo "Configure the missing repository secrets and rerun CI."
+            exit 1
+          fi
 
       # =========================
       # Setup Node.js
@@ -69,19 +94,48 @@ jobs:
       # Create Customer test environment
       # =========================
       - name: Create Customer test environment
+        env:
+          DB_TEST_USER: ${{ secrets.DB_TEST_USER }}
+          DB_TEST_PASSWORD: ${{ secrets.DB_TEST_PASSWORD }}
+          DB_TEST_ROOT_PASSWORD: ${{ secrets.DB_TEST_ROOT_PASSWORD }}
         run: |
-          cat > .env.test <<EOF
-          NODE_ENV=test
-          PORT=8007
-          DB_HOST=127.0.0.1
-          DB_PORT=3312
-          DB_USER=${{ secrets.DB_TEST_USER }}
-          DB_PASSWORD=${{ secrets.DB_TEST_PASSWORD }}
-          DB_NAME=quantumcart_customers_test
-          DB_CONNECTION_LIMIT=10
-          DB_ROOT_USER=root
-          DB_ROOT_PASSWORD=${{ secrets.DB_TEST_ROOT_PASSWORD }}
-          EOF
+          {
+            echo "NODE_ENV=test"
+            echo "PORT=8007"
+            echo "DB_HOST=127.0.0.1"
+            echo "DB_PORT=3312"
+            echo "DB_USER=$DB_TEST_USER"
+            echo "DB_PASSWORD=$DB_TEST_PASSWORD"
+            echo "DB_NAME=quantumcart_customers_test"
+            echo "DB_CONNECTION_LIMIT=10"
+            echo "DB_ROOT_USER=root"
+            echo "DB_ROOT_PASSWORD=$DB_TEST_ROOT_PASSWORD"
+          } > .env.test
+
+      # =========================
+      # Wait for MySQL
+      # =========================
+      - name: Wait for Customer MySQL
+        env:
+          DB_TEST_ROOT_PASSWORD: ${{ secrets.DB_TEST_ROOT_PASSWORD }}
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping \
+              -h 127.0.0.1 \
+              -P 3312 \
+              -uroot \
+              -p"$DB_TEST_ROOT_PASSWORD" \
+              --silent; then
+              echo "Customer MySQL is ready."
+              exit 0
+            fi
+
+            echo "Waiting for Customer MySQL..."
+            sleep 2
+          done
+
+          echo "::error::Customer MySQL did not become ready."
+          exit 1
 
       # =========================
       # TypeScript check
@@ -126,10 +180,26 @@ jobs:
         run: docker build -t quantumcart-customer-service:ci .
 
       # =========================
-      # MySQL logs on failure
+      # MySQL diagnostics on failure
       # =========================
-      - name: Show MySQL logs
+      - name: Show Customer MySQL diagnostics
         if: failure()
+        env:
+          DB_TEST_ROOT_PASSWORD: ${{ secrets.DB_TEST_ROOT_PASSWORD }}
         run: |
+          echo "===== Docker containers ====="
           docker ps -a
-          docker logs "$(docker ps -aq --filter ancestor=mysql:8.4 | head -n 1)" || true
+
+          echo "===== Customer MySQL container logs ====="
+          CONTAINER_ID=$(docker ps -aq --filter "name=customer-mysql" | head -n 1)
+
+          if [ -n "$CONTAINER_ID" ]; then
+            docker logs "$CONTAINER_ID" 2>&1 || true
+
+            echo "===== MySQL health status ====="
+            docker inspect \
+              --format='{{json .State.Health}}' \
+              "$CONTAINER_ID" || true
+          else
+            echo "Customer MySQL container was not found."
+          fi
