@@ -6,6 +6,17 @@ import app from "../../app";
 
 import { pool } from "../../config/database";
 
+const apiRequest = (identityUserId: string) => ({
+    get: (url: string) =>
+        request(app).get(url).set("x-user-id", identityUserId),
+    post: (url: string) =>
+        request(app).post(url).set("x-user-id", identityUserId),
+    patch: (url: string) =>
+        request(app).patch(url).set("x-user-id", identityUserId),
+    delete: (url: string) =>
+        request(app).delete(url).set("x-user-id", identityUserId),
+});
+
 describe("Address API - Integration Tests", () => {
 
     const identityUserId = randomUUID();
@@ -19,7 +30,7 @@ describe("Address API - Integration Tests", () => {
     beforeAll(async () => {
 
         const customerResponse =
-            await request(app)
+            await apiRequest(identityUserId)
                 .post("/api/v1/customers")
                 .send({
                     identityUserId,
@@ -67,7 +78,7 @@ describe("Address API - Integration Tests", () => {
                 async () => {
 
                     const response =
-                        await request(app)
+                        await apiRequest(identityUserId)
                             .post(
                                 `/api/v1/customers/${customerId}/addresses`
                             )
@@ -172,7 +183,7 @@ describe("Address API - Integration Tests", () => {
                 async () => {
 
                     const response =
-                        await request(app)
+                        await apiRequest(identityUserId)
                             .post(
                                 `/api/v1/customers/${randomUUID()}/addresses`
                             )
@@ -210,7 +221,7 @@ describe("Address API - Integration Tests", () => {
                 async () => {
 
                     const response =
-                        await request(app)
+                        await apiRequest(identityUserId)
                             .get(
                                 `/api/v1/customers/${customerId}/addresses`
                             );
@@ -242,7 +253,7 @@ describe("Address API - Integration Tests", () => {
                 async () => {
 
                     const response =
-                        await request(app)
+                        await apiRequest(identityUserId)
                             .get(
                                 `/api/v1/customers/${randomUUID()}/addresses`
                             );
@@ -269,7 +280,7 @@ describe("Address API - Integration Tests", () => {
                 async () => {
 
                     const response =
-                        await request(app)
+                        await apiRequest(identityUserId)
                             .get(
                                 `/api/v1/customers/${customerId}/addresses/${addressId}`
                             );
@@ -303,7 +314,7 @@ describe("Address API - Integration Tests", () => {
                 async () => {
 
                     const response =
-                        await request(app)
+                        await apiRequest(identityUserId)
                             .get(
                                 `/api/v1/customers/${randomUUID()}/addresses/${addressId}`
                             );
@@ -326,7 +337,7 @@ describe("Address API - Integration Tests", () => {
                 async () => {
 
                     const response =
-                        await request(app)
+                        await apiRequest(identityUserId)
                             .get(
                                 `/api/v1/customers/${customerId}/addresses/${randomUUID()}`
                             );
@@ -344,6 +355,229 @@ describe("Address API - Integration Tests", () => {
         }
     );
 
+    describe("Ownership regressions", () => {
+
+        const otherIdentityUserId = randomUUID();
+
+        it(
+            "should reject create address when authenticated identity is missing",
+            async () => {
+
+                const response =
+                    await request(app)
+                        .post(
+                            `/api/v1/customers/${customerId}/addresses`
+                        )
+                        .send({
+                            addressType: "HOME",
+                            recipientName:
+                                "No Identity",
+                            addressLine1:
+                                "1 Test Street",
+                            city: "Noida",
+                            state:
+                                "Uttar Pradesh",
+                            postalCode: "201301"
+                        });
+
+                expect(response.status)
+                    .toBe(401);
+
+                expect(response.body.error.message)
+                    .toBe(
+                        "Authenticated identity is required"
+                    );
+            }
+        );
+
+        it(
+            "should reject create address when customer belongs to another identity",
+            async () => {
+
+                const response =
+                    await apiRequest(otherIdentityUserId)
+                        .post(
+                            `/api/v1/customers/${customerId}/addresses`
+                        )
+                        .send({
+                            addressType: "HOME",
+                            recipientName:
+                                "Cross Identity",
+                            addressLine1:
+                                "1 Test Street",
+                            city: "Noida",
+                            state:
+                                "Uttar Pradesh",
+                            postalCode: "201301"
+                        });
+
+                expect(response.status)
+                    .toBe(404);
+
+                expect(response.body.error.message)
+                    .toBe("Customer not found");
+            }
+        );
+
+        it(
+            "should reject listing addresses when authenticated identity is missing",
+            async () => {
+
+                const response =
+                    await request(app)
+                        .get(
+                            `/api/v1/customers/${customerId}/addresses`
+                        );
+
+                expect(response.status)
+                    .toBe(401);
+
+                expect(response.body.error.message)
+                    .toBe(
+                        "Authenticated identity is required"
+                    );
+            }
+        );
+
+        it(
+            "should reject listing addresses when customer belongs to another identity",
+            async () => {
+
+                const response =
+                    await apiRequest(otherIdentityUserId)
+                        .get(
+                            `/api/v1/customers/${customerId}/addresses`
+                        );
+
+                expect(response.status)
+                    .toBe(404);
+
+                expect(response.body.error.message)
+                    .toBe("Customer not found");
+            }
+        );
+
+        it(
+            "should reject fetching an address when authenticated identity is missing",
+            async () => {
+
+                const response =
+                    await request(app)
+                        .get(
+                            `/api/v1/customers/${customerId}/addresses/${addressId}`
+                        );
+
+                expect(response.status)
+                    .toBe(401);
+
+                expect(response.body.error.message)
+                    .toBe(
+                        "Authenticated identity is required"
+                    );
+            }
+        );
+
+        it(
+            "should reject fetching an address when customer belongs to another identity",
+            async () => {
+
+                const response =
+                    await apiRequest(otherIdentityUserId)
+                        .get(
+                            `/api/v1/customers/${customerId}/addresses/${addressId}`
+                        );
+
+                expect(response.status)
+                    .toBe(404);
+
+                expect(response.body.error.message)
+                    .toBe("Customer not found");
+            }
+        );
+
+        it(
+            "should reject updating an address when authenticated identity is missing",
+            async () => {
+
+                const response =
+                    await request(app)
+                        .patch(
+                            `/api/v1/customers/${customerId}/addresses/${addressId}`
+                        )
+                        .send({
+                            city: "No Identity"
+                        });
+
+                expect(response.status)
+                    .toBe(401);
+
+                expect(response.body.error.message)
+                    .toBe(
+                        "Authenticated identity is required"
+                    );
+            }
+        );
+
+        it(
+            "should reject updating an address when customer belongs to another identity",
+            async () => {
+
+                const response =
+                    await apiRequest(otherIdentityUserId)
+                        .patch(
+                            `/api/v1/customers/${customerId}/addresses/${addressId}`
+                        )
+                        .send({
+                            city: "Hacked"
+                        });
+
+                expect(response.status)
+                    .toBe(404);
+
+                expect(response.body.error.message)
+                    .toBe("Customer not found");
+            }
+        );
+
+        it(
+            "should reject deleting an address when authenticated identity is missing",
+            async () => {
+
+                const response =
+                    await request(app)
+                        .delete(
+                            `/api/v1/customers/${customerId}/addresses/${addressId}`
+                        );
+
+                expect(response.status)
+                    .toBe(401);
+
+                expect(response.body.error.message)
+                    .toBe(
+                        "Authenticated identity is required"
+                    );
+            }
+        );
+
+        it(
+            "should reject deleting an address when customer belongs to another identity",
+            async () => {
+
+                const response =
+                    await apiRequest(otherIdentityUserId)
+                        .delete(
+                            `/api/v1/customers/${customerId}/addresses/${addressId}`
+                        );
+
+                expect(response.status)
+                    .toBe(404);
+
+                expect(response.body.error.message)
+                    .toBe("Customer not found");
+            }
+        );
+    });
+
     describe("Default address behavior", () => {
 
         it(
@@ -351,7 +585,7 @@ describe("Address API - Integration Tests", () => {
             async () => {
 
                 const response =
-                    await request(app)
+                    await apiRequest(identityUserId)
                         .post(
                             `/api/v1/customers/${customerId}/addresses`
                         )
@@ -431,7 +665,7 @@ describe("Address API - Integration Tests", () => {
             async () => {
 
                 const response =
-                    await request(app)
+                    await apiRequest(identityUserId)
                         .patch(
                             `/api/v1/customers/${customerId}/addresses/${addressId}`
                         )
@@ -496,7 +730,7 @@ describe("Address API - Integration Tests", () => {
                 async () => {
 
                     const response =
-                        await request(app)
+                        await apiRequest(identityUserId)
                             .patch(
                                 `/api/v1/customers/${customerId}/addresses/${addressId}`
                             )
@@ -542,7 +776,7 @@ describe("Address API - Integration Tests", () => {
                 async () => {
 
                     const response =
-                        await request(app)
+                        await apiRequest(identityUserId)
                             .delete(
                                 `/api/v1/customers/${customerId}/addresses/${addressId}`
                             );
@@ -578,7 +812,7 @@ describe("Address API - Integration Tests", () => {
                 async () => {
 
                     const response =
-                        await request(app)
+                        await apiRequest(identityUserId)
                             .get(
                                 `/api/v1/customers/${customerId}/addresses/${addressId}`
                             );

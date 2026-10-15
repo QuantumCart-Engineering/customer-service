@@ -66,14 +66,22 @@ services:
       DB_ROOT_USER: ${DB_ROOT_USER}
       DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
 
-    ports:
-      - "8007:8007"
-
     depends_on:
       customer-mysql:
         condition: service_healthy
 
     restart: unless-stopped
 
+    networks:
+      - default
+      - quantumcart-network
+
+
 volumes:
   customer_mysql_data:
+
+
+networks:
+  quantumcart-network:
+    external: true
+    name: quantumcart-network

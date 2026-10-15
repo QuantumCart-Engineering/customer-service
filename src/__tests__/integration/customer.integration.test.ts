@@ -6,11 +6,24 @@ import app from "../../app";
 
 import { pool } from "../../config/database";
 
+const apiRequest = (identityUserId: string) => ({
+    get: (url: string) =>
+        request(app).get(url).set("x-user-id", identityUserId),
+    post: (url: string) =>
+        request(app).post(url).set("x-user-id", identityUserId),
+    patch: (url: string) =>
+        request(app).patch(url).set("x-user-id", identityUserId),
+    delete: (url: string) =>
+        request(app).delete(url).set("x-user-id", identityUserId),
+});
+
 describe("Customer API - Integration Tests", () => {
 
     const identityUserId = randomUUID();
 
     let customerId: string;
+
+    let spoofedCustomerId: string;
 
     afterAll(async () => {
 
@@ -30,6 +43,17 @@ describe("Customer API - Integration Tests", () => {
                 WHERE id = ?
                 `,
                 [customerId]
+            );
+        }
+
+        if (spoofedCustomerId) {
+
+            await pool.execute(
+                `
+                DELETE FROM customers
+                WHERE id = ?
+                `,
+                [spoofedCustomerId]
             );
         }
 
@@ -67,7 +91,7 @@ describe("Customer API - Integration Tests", () => {
             async () => {
 
                 const response =
-                    await request(app)
+                    await apiRequest(identityUserId)
                         .post("/api/v1/customers")
                         .send({
                             identityUserId,
@@ -142,7 +166,7 @@ describe("Customer API - Integration Tests", () => {
             async () => {
 
                 const response =
-                    await request(app)
+                    await apiRequest(identityUserId)
                         .post("/api/v1/customers")
                         .send({
                             identityUserId,
@@ -171,7 +195,7 @@ describe("Customer API - Integration Tests", () => {
             async () => {
 
                 const response =
-                    await request(app)
+                    await apiRequest(identityUserId)
                         .get(
                             `/api/v1/customers/${customerId}`
                         );
@@ -198,7 +222,7 @@ describe("Customer API - Integration Tests", () => {
             async () => {
 
                 const response =
-                    await request(app)
+                    await apiRequest(identityUserId)
                         .get(
                             `/api/v1/customers/${randomUUID()}`
                         );
@@ -224,7 +248,7 @@ describe("Customer API - Integration Tests", () => {
                 async () => {
 
                     const response =
-                        await request(app)
+                        await apiRequest(identityUserId)
                             .get(
                                 `/api/v1/customers/by-identity/${identityUserId}`
                             );
@@ -253,10 +277,15 @@ describe("Customer API - Integration Tests", () => {
                 "should return 404 for an unknown identity user",
                 async () => {
 
+                    const unknownIdentityUserId =
+                        randomUUID();
+
                     const response =
-                        await request(app)
+                        await apiRequest(
+                            unknownIdentityUserId
+                        )
                             .get(
-                                `/api/v1/customers/by-identity/${randomUUID()}`
+                                `/api/v1/customers/by-identity/${unknownIdentityUserId}`
                             );
 
                     expect(response.status)
@@ -274,6 +303,165 @@ describe("Customer API - Integration Tests", () => {
         }
     );
 
+    describe("Ownership regressions", () => {
+
+        const otherIdentityUserId = randomUUID();
+
+        it(
+            "should reject fetching a customer when authenticated identity is missing",
+            async () => {
+
+                const response =
+                    await request(app)
+                        .get(
+                            `/api/v1/customers/${customerId}`
+                        );
+
+                expect(response.status)
+                    .toBe(401);
+
+                expect(response.body.error.message)
+                    .toBe(
+                        "Authenticated identity is required"
+                    );
+            }
+        );
+
+        it(
+            "should reject fetching a customer owned by another identity",
+            async () => {
+
+                const response =
+                    await apiRequest(otherIdentityUserId)
+                        .get(
+                            `/api/v1/customers/${customerId}`
+                        );
+
+                expect(response.status)
+                    .toBe(404);
+
+                expect(response.body.error.message)
+                    .toBe("Customer not found");
+            }
+        );
+
+        it(
+            "should reject fetching by identity when path identity differs from authenticated identity",
+            async () => {
+
+                const response =
+                    await apiRequest(otherIdentityUserId)
+                        .get(
+                            `/api/v1/customers/by-identity/${identityUserId}`
+                        );
+
+                expect(response.status)
+                    .toBe(404);
+
+                expect(response.body.error.message)
+                    .toBe("Customer not found");
+            }
+        );
+
+        it(
+            "should reject updating a customer owned by another identity",
+            async () => {
+
+                const response =
+                    await apiRequest(otherIdentityUserId)
+                        .patch(
+                            `/api/v1/customers/${customerId}`
+                        )
+                        .send({
+                            firstName: "Hacked"
+                        });
+
+                expect(response.status)
+                    .toBe(404);
+
+                expect(response.body.error.message)
+                    .toBe("Customer not found");
+            }
+        );
+
+        it(
+            "should reject status change for a customer owned by another identity",
+            async () => {
+
+                const response =
+                    await apiRequest(otherIdentityUserId)
+                        .patch(
+                            `/api/v1/customers/${customerId}/status`
+                        )
+                        .send({
+                            status: "BLOCKED"
+                        });
+
+                expect(response.status)
+                    .toBe(404);
+
+                expect(response.body.error.message)
+                    .toBe("Customer not found");
+            }
+        );
+
+        it(
+            "should reject deleting a customer owned by another identity",
+            async () => {
+
+                const response =
+                    await apiRequest(otherIdentityUserId)
+                        .delete(
+                            `/api/v1/customers/${customerId}`
+                        );
+
+                expect(response.status)
+                    .toBe(404);
+
+                expect(response.body.error.message)
+                    .toBe("Customer not found");
+            }
+        );
+
+        it(
+            "should ignore a spoofed identityUserId in the create payload and use the authenticated identity",
+            async () => {
+
+                const authenticatedIdentity =
+                    randomUUID();
+
+                const spoofedIdentity =
+                    randomUUID();
+
+                const response =
+                    await apiRequest(authenticatedIdentity)
+                        .post("/api/v1/customers")
+                        .send({
+                            identityUserId:
+                                spoofedIdentity,
+                            firstName:
+                                "Spoof",
+                            lastName:
+                                "Attempt"
+                        });
+
+                expect(response.status)
+                    .toBe(201);
+
+                expect(
+                    response.body.data.identityUserId
+                ).toBe(authenticatedIdentity);
+
+                expect(
+                    response.body.data.identityUserId
+                ).not.toBe(spoofedIdentity);
+
+                spoofedCustomerId =
+                    response.body.data.id;
+            }
+        );
+    });
+
     describe("PATCH /api/v1/customers/:id", () => {
 
         it(
@@ -281,7 +469,7 @@ describe("Customer API - Integration Tests", () => {
             async () => {
 
                 const response =
-                    await request(app)
+                    await apiRequest(identityUserId)
                         .patch(
                             `/api/v1/customers/${customerId}`
                         )
@@ -315,7 +503,7 @@ describe("Customer API - Integration Tests", () => {
             async () => {
 
                 const response =
-                    await request(app)
+                    await apiRequest(identityUserId)
                         .patch(
                             `/api/v1/customers/${customerId}/status`
                         )
@@ -339,7 +527,7 @@ describe("Customer API - Integration Tests", () => {
             async () => {
 
                 const response =
-                    await request(app)
+                    await apiRequest(identityUserId)
                         .patch(
                             `/api/v1/customers/${customerId}/status`
                         )
@@ -366,7 +554,7 @@ describe("Customer API - Integration Tests", () => {
             async () => {
 
                 const response =
-                    await request(app)
+                    await apiRequest(identityUserId)
                         .delete(
                             `/api/v1/customers/${customerId}`
                         );
@@ -406,7 +594,7 @@ describe("Customer API - Integration Tests", () => {
             async () => {
 
                 const response =
-                    await request(app)
+                    await apiRequest(identityUserId)
                         .get(
                             `/api/v1/customers/${customerId}`
                         );

@@ -166,6 +166,7 @@ describe(
                             await addressService
                                 .createAddress(
                                     "customer-123",
+                                    "identity-123",
                                     {
                                         addressType:
                                             "HOME",
@@ -266,6 +267,7 @@ describe(
                         await addressService
                             .createAddress(
                                 "customer-123",
+                                "identity-123",
                                 {
                                     recipientName:
                                         "Akash Kumar",
@@ -304,6 +306,94 @@ describe(
                 );
 
                 it(
+                    "should reject address when authenticated identity is missing",
+                    async () => {
+
+                        await expect(
+                            addressService
+                                .createAddress(
+                                    "customer-123",
+                                    "   ",
+                                    {
+                                        recipientName:
+                                            "Akash Kumar",
+
+                                        addressLine1:
+                                            "123 Main Street",
+
+                                        city:
+                                            "Noida",
+
+                                        state:
+                                            "Uttar Pradesh",
+
+                                        postalCode:
+                                            "201301"
+                                    }
+                                )
+                        ).rejects.toThrow(
+                            "Authenticated identity is required"
+                        );
+
+                        expect(
+                            customerRepository
+                                .findById
+                        ).not.toHaveBeenCalled();
+
+                        expect(
+                            addressRepository
+                                .create
+                        ).not.toHaveBeenCalled();
+                    }
+                );
+
+                it(
+                    "should reject address when customer belongs to another identity",
+                    async () => {
+
+                        customerRepository
+                            .findById
+                            .mockResolvedValue({
+                                ...activeCustomer,
+
+                                identityUserId:
+                                    "identity-other"
+                            });
+
+                        await expect(
+                            addressService
+                                .createAddress(
+                                    "customer-123",
+                                    "identity-123",
+                                    {
+                                        recipientName:
+                                            "Akash Kumar",
+
+                                        addressLine1:
+                                            "123 Main Street",
+
+                                        city:
+                                            "Noida",
+
+                                        state:
+                                            "Uttar Pradesh",
+
+                                        postalCode:
+                                            "201301"
+                                    }
+                                )
+                        ).rejects.toThrow(
+                            "Customer not found"
+                        );
+
+                        expect(
+                            addressRepository
+                                .create
+                        ).not.toHaveBeenCalled();
+                    }
+                );
+
+                it(
                     "should reject address when customer does not exist",
                     async () => {
 
@@ -317,6 +407,7 @@ describe(
                             addressService
                                 .createAddress(
                                     "customer-123",
+                                    "identity-123",
                                     {
                                         recipientName:
                                             "Akash Kumar",
@@ -361,6 +452,7 @@ describe(
                             addressService
                                 .createAddress(
                                     "customer-123",
+                                    "identity-123",
                                     {
                                         recipientName:
                                             "Akash Kumar",
@@ -403,6 +495,7 @@ describe(
                             addressService
                                 .createAddress(
                                     "customer-123",
+                                    "identity-123",
                                     {
                                         recipientName:
                                             "   ",
@@ -445,6 +538,7 @@ describe(
                             addressService
                                 .createAddress(
                                     "customer-123",
+                                    "identity-123",
                                     {
                                         recipientName:
                                             "Akash Kumar",
@@ -482,6 +576,7 @@ describe(
                             addressService
                                 .createAddress(
                                     "customer-123",
+                                    "identity-123",
                                     {
                                         recipientName:
                                             "Akash Kumar",
@@ -519,6 +614,7 @@ describe(
                             addressService
                                 .createAddress(
                                     "customer-123",
+                                    "identity-123",
                                     {
                                         recipientName:
                                             "Akash Kumar",
@@ -556,6 +652,7 @@ describe(
                             addressService
                                 .createAddress(
                                     "customer-123",
+                                    "identity-123",
                                     {
                                         recipientName:
                                             "Akash Kumar",
@@ -589,6 +686,12 @@ describe(
                     "should return address belonging to customer",
                     async () => {
 
+                        customerRepository
+                            .findById
+                            .mockResolvedValue(
+                                activeCustomer
+                            );
+
                         addressRepository
                             .findById
                             .mockResolvedValue(
@@ -599,6 +702,7 @@ describe(
                             await addressService
                                 .getAddressById(
                                     "customer-123",
+                                    "identity-123",
                                     "address-123"
                                 );
 
@@ -606,6 +710,66 @@ describe(
                             result
                         ).toEqual(
                             activeAddress
+                        );
+                    }
+                );
+
+                it(
+                    "should reject when authenticated identity is missing",
+                    async () => {
+
+                        addressRepository
+                            .findById
+                            .mockResolvedValue(
+                                activeAddress
+                            );
+
+                        await expect(
+                            addressService
+                                .getAddressById(
+                                    "customer-123",
+                                    "   ",
+                                    "address-123"
+                                )
+                        ).rejects.toThrow(
+                            "Authenticated identity is required"
+                        );
+
+                        expect(
+                            customerRepository
+                                .findById
+                        ).not.toHaveBeenCalled();
+                    }
+                );
+
+                it(
+                    "should reject when customer belongs to another identity",
+                    async () => {
+
+                        addressRepository
+                            .findById
+                            .mockResolvedValue(
+                                activeAddress
+                            );
+
+                        customerRepository
+                            .findById
+                            .mockResolvedValue({
+                                ...activeCustomer,
+
+                                identityUserId:
+                                    "identity-other"
+                            });
+
+                        await expect(
+                            addressService
+                                .getAddressById(
+                                    "customer-123",
+                                    "identity-123",
+                                    "address-123"
+                                )
+                        ).rejects.toThrow(
+                            "Customer not found"
                         );
                     }
                 );
@@ -624,6 +788,7 @@ describe(
                             addressService
                                 .getAddressById(
                                     "customer-123",
+                                    "identity-123",
                                     "address-123"
                                 )
                         ).rejects.toThrow(
@@ -649,6 +814,7 @@ describe(
                             addressService
                                 .getAddressById(
                                     "customer-123",
+                                    "identity-123",
                                     "address-123"
                                 )
                         ).rejects.toThrow(
@@ -674,6 +840,7 @@ describe(
                             addressService
                                 .getAddressById(
                                     "customer-123",
+                                    "identity-123",
                                     "address-123"
                                 )
                         ).rejects.toThrow(
@@ -707,7 +874,8 @@ describe(
                         const result =
                             await addressService
                                 .getCustomerAddresses(
-                                    "customer-123"
+                                    "customer-123",
+                                    "identity-123"
                                 );
 
                         expect(
@@ -726,6 +894,57 @@ describe(
                 );
 
                 it(
+                    "should reject when authenticated identity is missing",
+                    async () => {
+
+                        await expect(
+                            addressService
+                                .getCustomerAddresses(
+                                    "customer-123",
+                                    "   "
+                                )
+                        ).rejects.toThrow(
+                            "Authenticated identity is required"
+                        );
+
+                        expect(
+                            addressRepository
+                                .findByCustomerId
+                        ).not.toHaveBeenCalled();
+                    }
+                );
+
+                it(
+                    "should reject when customer belongs to another identity",
+                    async () => {
+
+                        customerRepository
+                            .findById
+                            .mockResolvedValue({
+                                ...activeCustomer,
+
+                                identityUserId:
+                                    "identity-other"
+                            });
+
+                        await expect(
+                            addressService
+                                .getCustomerAddresses(
+                                    "customer-123",
+                                    "identity-123"
+                                )
+                        ).rejects.toThrow(
+                            "Customer not found"
+                        );
+
+                        expect(
+                            addressRepository
+                                .findByCustomerId
+                        ).not.toHaveBeenCalled();
+                    }
+                );
+
+                it(
                     "should reject when customer does not exist",
                     async () => {
 
@@ -738,7 +957,8 @@ describe(
                         await expect(
                             addressService
                                 .getCustomerAddresses(
-                                    "customer-123"
+                                    "customer-123",
+                                    "identity-123"
                                 )
                         ).rejects.toThrow(
                             "Customer not found"
@@ -760,6 +980,12 @@ describe(
                 it(
                     "should update address successfully",
                     async () => {
+
+                        customerRepository
+                            .findById
+                            .mockResolvedValue(
+                                activeCustomer
+                            );
 
                         addressRepository
                             .findById
@@ -794,6 +1020,7 @@ describe(
                             await addressService
                                 .updateAddress(
                                     "customer-123",
+                                    "identity-123",
                                     "address-123",
                                     {
                                         city:
@@ -822,6 +1049,79 @@ describe(
                 );
 
                 it(
+                    "should reject when authenticated identity is missing",
+                    async () => {
+
+                        addressRepository
+                            .findById
+                            .mockResolvedValue(
+                                activeAddress
+                            );
+
+                        await expect(
+                            addressService
+                                .updateAddress(
+                                    "customer-123",
+                                    "   ",
+                                    "address-123",
+                                    {
+                                        city:
+                                            "Greater Noida"
+                                    }
+                                )
+                        ).rejects.toThrow(
+                            "Authenticated identity is required"
+                        );
+
+                        expect(
+                            addressRepository
+                                .update
+                        ).not.toHaveBeenCalled();
+                    }
+                );
+
+                it(
+                    "should reject when customer belongs to another identity",
+                    async () => {
+
+                        addressRepository
+                            .findById
+                            .mockResolvedValue(
+                                activeAddress
+                            );
+
+                        customerRepository
+                            .findById
+                            .mockResolvedValue({
+                                ...activeCustomer,
+
+                                identityUserId:
+                                    "identity-other"
+                            });
+
+                        await expect(
+                            addressService
+                                .updateAddress(
+                                    "customer-123",
+                                    "identity-123",
+                                    "address-123",
+                                    {
+                                        city:
+                                            "Greater Noida"
+                                    }
+                                )
+                        ).rejects.toThrow(
+                            "Customer not found"
+                        );
+
+                        expect(
+                            addressRepository
+                                .update
+                        ).not.toHaveBeenCalled();
+                    }
+                );
+
+                it(
                     "should clear existing default when address becomes default",
                     async () => {
 
@@ -840,6 +1140,12 @@ describe(
                                 isDefault:
                                     true
                             };
+
+                        customerRepository
+                            .findById
+                            .mockResolvedValue(
+                                activeCustomer
+                            );
 
                         addressRepository
                             .findById
@@ -866,6 +1172,7 @@ describe(
                             await addressService
                                 .updateAddress(
                                     "customer-123",
+                                    "identity-123",
                                     "address-123",
                                     {
                                         isDefault:
@@ -898,6 +1205,12 @@ describe(
                     "should delete an existing address",
                     async () => {
 
+                        customerRepository
+                            .findById
+                            .mockResolvedValue(
+                                activeCustomer
+                            );
+
                         addressRepository
                             .findById
                             .mockResolvedValue(
@@ -913,6 +1226,7 @@ describe(
                         await addressService
                             .deleteAddress(
                                 "customer-123",
+                                "identity-123",
                                 "address-123"
                             );
 
@@ -923,6 +1237,71 @@ describe(
                             "address-123",
                             "customer-123"
                         );
+                    }
+                );
+
+                it(
+                    "should reject when authenticated identity is missing",
+                    async () => {
+
+                        addressRepository
+                            .findById
+                            .mockResolvedValue(
+                                activeAddress
+                            );
+
+                        await expect(
+                            addressService
+                                .deleteAddress(
+                                    "customer-123",
+                                    "   ",
+                                    "address-123"
+                                )
+                        ).rejects.toThrow(
+                            "Authenticated identity is required"
+                        );
+
+                        expect(
+                            addressRepository
+                                .delete
+                        ).not.toHaveBeenCalled();
+                    }
+                );
+
+                it(
+                    "should reject when customer belongs to another identity",
+                    async () => {
+
+                        addressRepository
+                            .findById
+                            .mockResolvedValue(
+                                activeAddress
+                            );
+
+                        customerRepository
+                            .findById
+                            .mockResolvedValue({
+                                ...activeCustomer,
+
+                                identityUserId:
+                                    "identity-other"
+                            });
+
+                        await expect(
+                            addressService
+                                .deleteAddress(
+                                    "customer-123",
+                                    "identity-123",
+                                    "address-123"
+                                )
+                        ).rejects.toThrow(
+                            "Customer not found"
+                        );
+
+                        expect(
+                            addressRepository
+                                .delete
+                        ).not.toHaveBeenCalled();
                     }
                 );
 
@@ -943,6 +1322,7 @@ describe(
                             addressService
                                 .deleteAddress(
                                     "customer-123",
+                                    "identity-123",
                                     "address-123"
                                 )
                         ).rejects.toThrow(

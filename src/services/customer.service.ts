@@ -1,3 +1,4 @@
+
 import { randomUUID } from "crypto";
 
 import {
@@ -21,7 +22,7 @@ export class CustomerService {
     constructor(
         private readonly customerRepository:
             CustomerRepository
-    ) {}
+    ) { }
 
     async createCustomer(
         dto: CreateCustomerDto
@@ -62,18 +63,11 @@ export class CustomerService {
 
         const customer: Customer = {
             id: randomUUID(),
-
             identityUserId,
-
             firstName,
-
-            lastName:
-                dto.lastName?.trim() || null,
-
+            lastName: dto.lastName?.trim() || null,
             status: "ACTIVE",
-
             createdAt: new Date(),
-
             updatedAt: new Date()
         };
 
@@ -92,6 +86,39 @@ export class CustomerService {
             );
 
         if (!customer) {
+            throw new AppError(
+                "Customer not found",
+                404
+            );
+        }
+
+        return customer;
+    }
+
+    async getCustomerByIdForIdentity(
+        customerId: string,
+        identityUserId: string
+    ): Promise<Customer> {
+
+        const normalizedIdentityUserId =
+            identityUserId?.trim();
+
+        if (!normalizedIdentityUserId) {
+            throw new AppError(
+                "Authenticated identity is required",
+                401
+            );
+        }
+
+        const customer =
+            await this.getCustomerById(customerId);
+
+        if (
+            customer.identityUserId !==
+            normalizedIdentityUserId
+        ) {
+            // Do not reveal whether another user's
+            // customer profile exists.
             throw new AppError(
                 "Customer not found",
                 404
@@ -131,17 +158,50 @@ export class CustomerService {
         return customer;
     }
 
+
+    async getCustomerByIdentityForIdentity(
+        requestedIdentityUserId: string,
+        authenticatedIdentityUserId: string
+    ): Promise<Customer> {
+
+        const authenticatedId =
+            authenticatedIdentityUserId?.trim();
+
+        if (!authenticatedId) {
+            throw new AppError(
+                "Authenticated identity is required",
+                401
+            );
+        }
+
+        if (
+            requestedIdentityUserId !== authenticatedId
+        ) {
+            throw new AppError(
+                "Customer not found",
+                404
+            );
+        }
+
+        return this.getCustomerByIdentityUserId(
+            authenticatedId
+        );
+    }
+
+
     async updateCustomer(
         id: string,
+        identityUserId: string,
         dto: UpdateCustomerDto
     ): Promise<Customer> {
 
         const customer =
-            await this.getCustomerById(id);
+            await this.getCustomerByIdForIdentity(
+                id,
+                identityUserId
+            );
 
-        if (
-            customer.status === "DELETED"
-        ) {
+        if (customer.status === "DELETED") {
             throw new AppError(
                 "Deleted customer cannot be updated",
                 409
@@ -179,50 +239,39 @@ export class CustomerService {
             );
         }
 
-        const updatedCustomer =
-            await this.customerRepository.findById(
-                id
-            );
-
-        if (!updatedCustomer) {
-            throw new AppError(
-                "Customer not found after update",
-                500
-            );
-        }
-
-        return updatedCustomer;
+        return this.getCustomerByIdForIdentity(
+            id,
+            identityUserId
+        );
     }
 
     async updateStatus(
         id: string,
+        identityUserId: string,
         status: CustomerStatus
     ): Promise<Customer> {
 
         const customer =
-            await this.getCustomerById(id);
+            await this.getCustomerByIdForIdentity(
+                id,
+                identityUserId
+            );
 
-        if (
-            customer.status === "DELETED"
-        ) {
+        if (customer.status === "DELETED") {
             throw new AppError(
                 "Deleted customer status cannot be changed",
                 409
             );
         }
 
-        if (
-            status === "DELETED"
-        ) {
+        if (status === "DELETED") {
             throw new AppError(
                 "Use deleteCustomer to delete a customer",
                 400
             );
         }
 
-        if (
-            customer.status === status
-        ) {
+        if (customer.status === status) {
             return customer;
         }
 
@@ -239,31 +288,24 @@ export class CustomerService {
             );
         }
 
-        const updatedCustomer =
-            await this.customerRepository.findById(
-                id
-            );
-
-        if (!updatedCustomer) {
-            throw new AppError(
-                "Customer not found after status update",
-                500
-            );
-        }
-
-        return updatedCustomer;
+        return this.getCustomerByIdForIdentity(
+            id,
+            identityUserId
+        );
     }
 
     async deleteCustomer(
-        id: string
+        id: string,
+        identityUserId: string
     ): Promise<void> {
 
         const customer =
-            await this.getCustomerById(id);
+            await this.getCustomerByIdForIdentity(
+                id,
+                identityUserId
+            );
 
-        if (
-            customer.status === "DELETED"
-        ) {
+        if (customer.status === "DELETED") {
             return;
         }
 

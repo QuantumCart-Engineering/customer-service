@@ -66,7 +66,7 @@ describe(
                         jest.fn()
 
                 } as unknown as
-                    jest.Mocked<CustomerRepository>;
+                jest.Mocked<CustomerRepository>;
 
             customerService =
                 new CustomerService(
@@ -517,6 +517,269 @@ describe(
         );
 
         describe(
+            "getCustomerByIdForIdentity",
+            () => {
+
+                it(
+                    "should return customer when identity matches",
+                    async () => {
+
+                        const customer:
+                            Customer = {
+
+                            id:
+                                "customer-123",
+
+                            identityUserId:
+                                "identity-123",
+
+                            firstName:
+                                "Akash",
+
+                            lastName:
+                                "Kumar",
+
+                            status:
+                                "ACTIVE",
+
+                            createdAt:
+                                new Date(),
+
+                            updatedAt:
+                                new Date()
+                        };
+
+                        customerRepository
+                            .findById
+                            .mockResolvedValue(
+                                customer
+                            );
+
+                        const result =
+                            await customerService
+                                .getCustomerByIdForIdentity(
+                                    "customer-123",
+                                    "identity-123"
+                                );
+
+                        expect(
+                            result
+                        ).toEqual(
+                            customer
+                        );
+                    }
+                );
+
+                it(
+                    "should throw when authenticated identity is missing",
+                    async () => {
+
+                        try {
+
+                            await customerService
+                                .getCustomerByIdForIdentity(
+                                    "customer-123",
+                                    "   "
+                                );
+
+                            fail(
+                                "Expected AppError"
+                            );
+
+                        } catch (error) {
+
+                            expectAppError(
+                                error,
+                                401,
+                                "Authenticated identity is required"
+                            );
+                        }
+
+                        expect(
+                            customerRepository
+                                .findById
+                        ).not.toHaveBeenCalled();
+                    }
+                );
+
+                it(
+                    "should throw when customer belongs to another identity",
+                    async () => {
+
+                        customerRepository
+                            .findById
+                            .mockResolvedValue({
+
+                                id:
+                                    "customer-123",
+
+                                identityUserId:
+                                    "identity-other",
+
+                                firstName:
+                                    "Someone",
+
+                                lastName:
+                                    "Else",
+
+                                status:
+                                    "ACTIVE",
+
+                                createdAt:
+                                    new Date(),
+
+                                updatedAt:
+                                    new Date()
+                            });
+
+                        try {
+
+                            await customerService
+                                .getCustomerByIdForIdentity(
+                                    "customer-123",
+                                    "identity-123"
+                                );
+
+                            fail(
+                                "Expected AppError"
+                            );
+
+                        } catch (error) {
+
+                            expectAppError(
+                                error,
+                                404,
+                                "Customer not found"
+                            );
+                        }
+                    }
+                );
+
+            }
+        );
+
+        describe(
+            "getCustomerByIdentityForIdentity",
+            () => {
+
+                it(
+                    "should return customer when requested identity matches authenticated identity",
+                    async () => {
+
+                        const customer:
+                            Customer = {
+
+                            id:
+                                "customer-123",
+
+                            identityUserId:
+                                "identity-123",
+
+                            firstName:
+                                "Akash",
+
+                            lastName:
+                                "Kumar",
+
+                            status:
+                                "ACTIVE",
+
+                            createdAt:
+                                new Date(),
+
+                            updatedAt:
+                                new Date()
+                        };
+
+                        customerRepository
+                            .findByIdentityUserId
+                            .mockResolvedValue(
+                                customer
+                            );
+
+                        const result =
+                            await customerService
+                                .getCustomerByIdentityForIdentity(
+                                    "identity-123",
+                                    "identity-123"
+                                );
+
+                        expect(
+                            result
+                        ).toEqual(
+                            customer
+                        );
+                    }
+                );
+
+                it(
+                    "should throw when authenticated identity is missing",
+                    async () => {
+
+                        try {
+
+                            await customerService
+                                .getCustomerByIdentityForIdentity(
+                                    "identity-123",
+                                    "   "
+                                );
+
+                            fail(
+                                "Expected AppError"
+                            );
+
+                        } catch (error) {
+
+                            expectAppError(
+                                error,
+                                401,
+                                "Authenticated identity is required"
+                            );
+                        }
+
+                        expect(
+                            customerRepository
+                                .findByIdentityUserId
+                        ).not.toHaveBeenCalled();
+                    }
+                );
+
+                it(
+                    "should throw when requested identity differs from authenticated identity",
+                    async () => {
+
+                        try {
+
+                            await customerService
+                                .getCustomerByIdentityForIdentity(
+                                    "identity-other",
+                                    "identity-123"
+                                );
+
+                            fail(
+                                "Expected AppError"
+                            );
+
+                        } catch (error) {
+
+                            expectAppError(
+                                error,
+                                404,
+                                "Customer not found"
+                            );
+                        }
+
+                        expect(
+                            customerRepository
+                                .findByIdentityUserId
+                        ).not.toHaveBeenCalled();
+                    }
+                );
+
+            }
+        );
+
+        describe(
             "updateCustomer",
             () => {
 
@@ -577,14 +840,13 @@ describe(
                             );
 
                         const result =
-                            await customerService
-                                .updateCustomer(
-                                    "customer-123",
-                                    {
-                                        firstName:
-                                            " New "
-                                    }
-                                );
+                            await customerService.updateCustomer(
+                                "customer-123",
+                                "identity-123",
+                                {
+                                    firstName: " New "
+                                }
+                            );
 
                         expect(
                             customerRepository
@@ -640,14 +902,13 @@ describe(
 
                         try {
 
-                            await customerService
-                                .updateCustomer(
-                                    "customer-123",
-                                    {
-                                        firstName:
-                                            "New"
-                                    }
-                                );
+                            await customerService.updateCustomer(
+                                "customer-123",
+                                "identity-123",
+                                {
+                                    firstName: "New"
+                                }
+                            );
 
                             fail(
                                 "Expected AppError"
@@ -659,6 +920,66 @@ describe(
                                 error,
                                 409,
                                 "Deleted customer cannot be updated"
+                            );
+                        }
+
+                        expect(
+                            customerRepository
+                                .update
+                        ).not.toHaveBeenCalled();
+                    }
+                );
+
+                it(
+                    "should reject update when customer belongs to another identity",
+                    async () => {
+
+                        customerRepository
+                            .findById
+                            .mockResolvedValue({
+
+                                id:
+                                    "customer-123",
+
+                                identityUserId:
+                                    "identity-other",
+
+                                firstName:
+                                    "Someone",
+
+                                lastName:
+                                    "Else",
+
+                                status:
+                                    "ACTIVE",
+
+                                createdAt:
+                                    new Date(),
+
+                                updatedAt:
+                                    new Date()
+                            });
+
+                        try {
+
+                            await customerService.updateCustomer(
+                                "customer-123",
+                                "identity-123",
+                                {
+                                    firstName: "New"
+                                }
+                            );
+
+                            fail(
+                                "Expected AppError"
+                            );
+
+                        } catch (error) {
+
+                            expectAppError(
+                                error,
+                                404,
+                                "Customer not found"
                             );
                         }
 
@@ -730,11 +1051,11 @@ describe(
                             );
 
                         const result =
-                            await customerService
-                                .updateStatus(
-                                    "customer-123",
-                                    "BLOCKED"
-                                );
+                            await customerService.updateStatus(
+                                "customer-123",
+                                "identity-123",
+                                "BLOCKED"
+                            );
 
                         expect(
                             customerRepository
@@ -789,11 +1110,11 @@ describe(
 
                         try {
 
-                            await customerService
-                                .updateStatus(
-                                    "customer-123",
-                                    "ACTIVE"
-                                );
+                            await customerService.updateStatus(
+                                "customer-123",
+                                "identity-123",
+                                "ACTIVE"
+                            );
 
                             fail(
                                 "Expected AppError"
@@ -852,11 +1173,11 @@ describe(
 
                         try {
 
-                            await customerService
-                                .updateStatus(
-                                    "customer-123",
-                                    "DELETED"
-                                );
+                            await customerService.updateStatus(
+                                "customer-123",
+                                "identity-123",
+                                "DELETED"
+                            );
 
                             fail(
                                 "Expected AppError"
@@ -914,17 +1235,75 @@ describe(
                             );
 
                         const result =
-                            await customerService
-                                .updateStatus(
-                                    "customer-123",
-                                    "ACTIVE"
-                                );
+                            await customerService.updateStatus(
+                                "customer-123",
+                                "identity-123",
+                                "ACTIVE"
+                            );
 
                         expect(
                             result
                         ).toEqual(
                             customer
                         );
+
+                        expect(
+                            customerRepository
+                                .updateStatus
+                        ).not.toHaveBeenCalled();
+                    }
+                );
+
+                it(
+                    "should reject status change when customer belongs to another identity",
+                    async () => {
+
+                        customerRepository
+                            .findById
+                            .mockResolvedValue({
+
+                                id:
+                                    "customer-123",
+
+                                identityUserId:
+                                    "identity-other",
+
+                                firstName:
+                                    "Someone",
+
+                                lastName:
+                                    "Else",
+
+                                status:
+                                    "ACTIVE",
+
+                                createdAt:
+                                    new Date(),
+
+                                updatedAt:
+                                    new Date()
+                            });
+
+                        try {
+
+                            await customerService.updateStatus(
+                                "customer-123",
+                                "identity-123",
+                                "BLOCKED"
+                            );
+
+                            fail(
+                                "Expected AppError"
+                            );
+
+                        } catch (error) {
+
+                            expectAppError(
+                                error,
+                                404,
+                                "Customer not found"
+                            );
+                        }
 
                         expect(
                             customerRepository
@@ -981,10 +1360,10 @@ describe(
                                 true
                             );
 
-                        await customerService
-                            .deleteCustomer(
-                                "customer-123"
-                            );
+                        await customerService.deleteCustomer(
+                            "customer-123",
+                            "identity-123"
+                        );
 
                         expect(
                             customerRepository
@@ -1030,10 +1409,67 @@ describe(
                                 customer
                             );
 
-                        await customerService
-                            .deleteCustomer(
-                                "customer-123"
+                        await customerService.deleteCustomer(
+                            "customer-123",
+                            "identity-123"
+                        );
+
+                        expect(
+                            customerRepository
+                                .delete
+                        ).not.toHaveBeenCalled();
+                    }
+                );
+
+                it(
+                    "should reject delete when customer belongs to another identity",
+                    async () => {
+
+                        customerRepository
+                            .findById
+                            .mockResolvedValue({
+
+                                id:
+                                    "customer-123",
+
+                                identityUserId:
+                                    "identity-other",
+
+                                firstName:
+                                    "Someone",
+
+                                lastName:
+                                    "Else",
+
+                                status:
+                                    "ACTIVE",
+
+                                createdAt:
+                                    new Date(),
+
+                                updatedAt:
+                                    new Date()
+                            });
+
+                        try {
+
+                            await customerService.deleteCustomer(
+                                "customer-123",
+                                "identity-123"
                             );
+
+                            fail(
+                                "Expected AppError"
+                            );
+
+                        } catch (error) {
+
+                            expectAppError(
+                                error,
+                                404,
+                                "Customer not found"
+                            );
+                        }
 
                         expect(
                             customerRepository

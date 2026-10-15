@@ -12,6 +12,8 @@ import {
     AddressService
 } from "../services/address.service";
 
+import { AppError } from "../errors/app.error";
+
 interface AddressParams {
     customerId: string;
     addressId: string;
@@ -24,6 +26,26 @@ export class AddressController {
             AddressService
     ) {}
 
+    private getAuthenticatedIdentity(
+        req: { headers: Request["headers"] }
+    ): string {
+
+        const identityUserId =
+            req.headers["x-user-id"];
+
+        if (
+            typeof identityUserId !== "string" ||
+            !identityUserId.trim()
+        ) {
+            throw new AppError(
+                "Authenticated identity is required",
+                401
+            );
+        }
+
+        return identityUserId.trim();
+    }
+
     createAddress = async (
         req: Request<
             Pick<AddressParams, "customerId">
@@ -31,12 +53,16 @@ export class AddressController {
         res: Response
     ): Promise<void> => {
 
+        const identityUserId =
+            this.getAuthenticatedIdentity(req);
+
         const dto =
             req.body as CreateAddressDto;
 
         const address =
             await this.addressService.createAddress(
                 req.params.customerId,
+                identityUserId,
                 dto
             );
 
@@ -51,9 +77,13 @@ export class AddressController {
         res: Response
     ): Promise<void> => {
 
+        const identityUserId =
+            this.getAuthenticatedIdentity(req);
+
         const address =
             await this.addressService.getAddressById(
                 req.params.customerId,
+                identityUserId,
                 req.params.addressId
             );
 
@@ -70,9 +100,13 @@ export class AddressController {
         res: Response
     ): Promise<void> => {
 
+        const identityUserId =
+            this.getAuthenticatedIdentity(req);
+
         const addresses =
             await this.addressService.getCustomerAddresses(
-                req.params.customerId
+                req.params.customerId,
+                identityUserId
             );
 
         res.status(200).json({
@@ -86,12 +120,16 @@ export class AddressController {
         res: Response
     ): Promise<void> => {
 
+        const identityUserId =
+            this.getAuthenticatedIdentity(req);
+
         const dto =
             req.body as UpdateAddressDto;
 
         const address =
             await this.addressService.updateAddress(
                 req.params.customerId,
+                identityUserId,
                 req.params.addressId,
                 dto
             );
@@ -107,8 +145,12 @@ export class AddressController {
         res: Response
     ): Promise<void> => {
 
+        const identityUserId =
+            this.getAuthenticatedIdentity(req);
+
         await this.addressService.deleteAddress(
             req.params.customerId,
+            identityUserId,
             req.params.addressId
         );
 

@@ -16,6 +16,9 @@ RUN npm run build
 RUN mkdir -p dist/migrations \
     && cp src/migrations/*.sql dist/migrations/
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD node -e "require('http').get('http://127.0.0.1:8007/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
+
 EXPOSE 8007
 
 CMD ["node", "dist/scripts/start.js"]

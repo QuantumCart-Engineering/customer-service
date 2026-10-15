@@ -1,3 +1,4 @@
+
 import {
     Request,
     Response
@@ -12,6 +13,8 @@ import {
     CustomerService
 } from "../services/customer.service";
 
+import { AppError } from "../errors/app.error";
+
 interface CustomerParams {
     id: string;
 }
@@ -25,15 +28,40 @@ export class CustomerController {
     constructor(
         private readonly customerService:
             CustomerService
-    ) {}
+    ) { }
+
+    private getAuthenticatedIdentity(
+        req: { headers: Request["headers"] }
+    ): string {
+
+        const identityUserId =
+            req.headers["x-user-id"];
+
+        if (
+            typeof identityUserId !== "string" ||
+            !identityUserId.trim()
+        ) {
+            throw new AppError(
+                "Authenticated identity is required",
+                401
+            );
+        }
+
+        return identityUserId.trim();
+    }
 
     createCustomer = async (
         req: Request,
         res: Response
     ): Promise<void> => {
 
-        const dto =
-            req.body as CreateCustomerDto;
+        const identityUserId =
+            this.getAuthenticatedIdentity(req);
+
+        const dto: CreateCustomerDto = {
+            ...req.body,
+            identityUserId
+        };
 
         const customer =
             await this.customerService.createCustomer(
@@ -51,10 +79,15 @@ export class CustomerController {
         res: Response
     ): Promise<void> => {
 
+        const identityUserId =
+            this.getAuthenticatedIdentity(req);
+
         const customer =
-            await this.customerService.getCustomerById(
-                req.params.id
-            );
+            await this.customerService
+                .getCustomerByIdForIdentity(
+                    req.params.id,
+                    identityUserId
+                );
 
         res.status(200).json({
             success: true,
@@ -67,10 +100,14 @@ export class CustomerController {
         res: Response
     ): Promise<void> => {
 
+        const identityUserId =
+            this.getAuthenticatedIdentity(req);
+
         const customer =
             await this.customerService
-                .getCustomerByIdentityUserId(
-                    req.params.identityUserId
+                .getCustomerByIdentityForIdentity(
+                    req.params.identityUserId,
+                    identityUserId
                 );
 
         res.status(200).json({
@@ -84,12 +121,16 @@ export class CustomerController {
         res: Response
     ): Promise<void> => {
 
+        const identityUserId =
+            this.getAuthenticatedIdentity(req);
+
         const dto =
             req.body as UpdateCustomerDto;
 
         const customer =
             await this.customerService.updateCustomer(
                 req.params.id,
+                identityUserId,
                 dto
             );
 
@@ -104,9 +145,13 @@ export class CustomerController {
         res: Response
     ): Promise<void> => {
 
+        const identityUserId =
+            this.getAuthenticatedIdentity(req);
+
         const customer =
             await this.customerService.updateStatus(
                 req.params.id,
+                identityUserId,
                 req.body.status
             );
 
@@ -121,8 +166,12 @@ export class CustomerController {
         res: Response
     ): Promise<void> => {
 
+        const identityUserId =
+            this.getAuthenticatedIdentity(req);
+
         await this.customerService.deleteCustomer(
-            req.params.id
+            req.params.id,
+            identityUserId
         );
 
         res.status(204).send();

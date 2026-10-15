@@ -31,11 +31,13 @@ export class AddressService {
 
     async createAddress(
         customerId: string,
+        identityUserId: string,
         dto: CreateAddressDto
     ): Promise<Address> {
 
-        await this.ensureCustomerExists(
-            customerId
+        await this.ensureCustomerOwnership(
+            customerId,
+            identityUserId
         );
 
         this.validateAddressDto(dto);
@@ -97,6 +99,7 @@ export class AddressService {
 
     async getAddressById(
         customerId: string,
+        identityUserId: string,
         addressId: string
     ): Promise<Address> {
 
@@ -130,15 +133,22 @@ export class AddressService {
             );
         }
 
+        await this.ensureCustomerOwnership(
+            customerId,
+            identityUserId
+        );
+
         return address;
     }
 
     async getCustomerAddresses(
-        customerId: string
+        customerId: string,
+        identityUserId: string
     ): Promise<Address[]> {
 
-        await this.ensureCustomerExists(
-            customerId
+        await this.ensureCustomerOwnership(
+            customerId,
+            identityUserId
         );
 
         return this.addressRepository.findByCustomerId(
@@ -148,6 +158,7 @@ export class AddressService {
 
     async updateAddress(
         customerId: string,
+        identityUserId: string,
         addressId: string,
         dto: UpdateAddressDto
     ): Promise<Address> {
@@ -155,6 +166,7 @@ export class AddressService {
         const existing =
             await this.getAddressById(
                 customerId,
+                identityUserId,
                 addressId
             );
 
@@ -255,11 +267,13 @@ export class AddressService {
 
     async deleteAddress(
         customerId: string,
+        identityUserId: string,
         addressId: string
     ): Promise<void> {
 
         await this.getAddressById(
             customerId,
+            identityUserId,
             addressId
         );
 
@@ -277,9 +291,20 @@ export class AddressService {
         }
     }
 
-    private async ensureCustomerExists(
-        customerId: string
+    private async ensureCustomerOwnership(
+        customerId: string,
+        identityUserId: string
     ): Promise<void> {
+
+        const normalizedIdentityUserId =
+            identityUserId?.trim();
+
+        if (!normalizedIdentityUserId) {
+            throw new AppError(
+                "Authenticated identity is required",
+                401
+            );
+        }
 
         const customer =
             await this.customerRepository.findById(
@@ -299,6 +324,18 @@ export class AddressService {
             throw new AppError(
                 "Deleted customer cannot have address operations",
                 409
+            );
+        }
+
+        if (
+            customer.identityUserId !==
+            normalizedIdentityUserId
+        ) {
+            // Do not reveal whether another user's
+            // customer profile exists.
+            throw new AppError(
+                "Customer not found",
+                404
             );
         }
     }
