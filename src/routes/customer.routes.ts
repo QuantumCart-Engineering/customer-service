@@ -13,6 +13,18 @@ import {
     CustomerRepository
 } from "../repositories/customer.repository";
 
+import {
+    CustomerReportController
+} from "../controllers/customer-report.controller";
+
+import {
+    CustomerReportRepository
+} from "../repositories/customer-report.repository";
+
+import {
+    CustomerReportService
+} from "../services/customer-report.service";
+
 const router = Router();
 
 const customerRepository =
@@ -27,6 +39,49 @@ const customerController =
     new CustomerController(
         customerService
     );
+
+const customerReportController =
+    new CustomerReportController(
+        new CustomerReportService(
+            new CustomerReportRepository()
+        )
+    );
+
+/**
+ * @swagger
+ * /api/v1/customers/reports/summary:
+ *   get:
+ *     tags:
+ *       - Customer Reports
+ *     summary: Customer analytics summary (admin)
+ *     description: Total, active, blocked and new customers for a date range.
+ *     parameters:
+ *       - in: query
+ *         name: from
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: to
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       '200':
+ *         description: Summary returned successfully
+ *       '400':
+ *         description: Invalid date range
+ *       '401':
+ *         description: Authentication required
+ *       '403':
+ *         description: Administrator role required
+ */
+router.get(
+    "/reports/summary",
+    customerReportController.getSummary
+);
 
 /**
  * @swagger
